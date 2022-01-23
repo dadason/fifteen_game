@@ -1,4 +1,5 @@
 import pygame
+import numpy as np
 
 
 class Board:
@@ -11,6 +12,28 @@ class Board:
         self.left = 20
         self.top = 20
         self.cell_size = 30
+        self.current_cell = ()
+        self._start_field()
+
+    def _start_field(self):
+        self.num_dict = {}
+        num_list = np.random.permutation(16)
+        for y in range(self.height):
+            for x in range(self.width):
+                self.num_dict[(x, y)] = num_list[4 * x + y]
+                if self.num_dict[(x, y)] == 0:
+                    self.empty_cell = (x, y)
+                    print(x, y)
+
+    def draw_num(self):
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.num_dict[(x, y)] == 0:
+                    continue
+                font = pygame.font.Font(None, 30)
+                text = font.render(str(self.num_dict[(x, y)]), False, (100, 255, 100))
+                screen.blit(text, (x * self.cell_size + self.left + int(self.cell_size / 2),
+                                   y * self.cell_size + self.top + int(self.cell_size / 2)))
 
     def set_view(self, left, top, cell_size):
         self.left = left
@@ -23,14 +46,20 @@ class Board:
                 pygame.draw.rect(screen, pygame.Color(255, 255, 255), (
                     x * self.cell_size + self.left, y * self.cell_size + self.top, self.cell_size,
                     self.cell_size), 1)
-                font = pygame.font.Font(None, 30)
-                text = font.render(str(y * 4 + x), False, (100, 255, 100))
-                screen.blit(text, (x * self.cell_size + self.left + int(self.cell_size / 2),
-                                   y * self.cell_size + self.top + int(self.cell_size / 2)))
+        self.draw_num()
+        if self.is_win():
+            pass #завершить игру
+        # if self.current_cell:  # не пусто
+        #     if (self.current_cell[0] >= 0 and self.current_cell[0] <= 3) and \
+        #             (self.current_cell[1] >= 0 and self.current_cell[1] <= 3):
+        #         self.on_click(self.current_cell, screen)
+    def is_win(self):
+        pass
+        #проверка поля на выигрыш
 
     def get_click(self, mouse_pos, screen):
-        cell = self.get_cell(mouse_pos)
-        self.on_click(cell, screen)
+        self.current_cell = self.get_cell(mouse_pos)
+        self.on_click(self.current_cell, screen)
 
     def get_cell(self, mouse_pos):
         mouse_x, mouse_y = mouse_pos
@@ -40,14 +69,22 @@ class Board:
         return cell_coords
 
     def on_click(self, cell_coords, screen):
-        rect_centre = (cell_coords[0]*self.cell_size + self.left, cell_coords[1] * self.cell_size+ self.top)
-        print(self.left,self.top,rect_centre)
-        #pygame.draw.circle(screen, (0, 255, 25), rect_centre, 15)
-
-        # Drawing Rectangle
-        pygame.draw.rect(screen, (0,255,25), pygame.Rect(rect_centre[0], rect_centre[1],self.cell_size,self.cell_size))
-        pygame.display.flip()
-        print(cell_coords)
+        if cell_coords[0] < 0 or cell_coords[0] > 3 or cell_coords[1] < 0 or cell_coords[1] > 3:
+            return
+        if (cell_coords[0] + 1, cell_coords[1]) == self.empty_cell or\
+                (cell_coords[0] - 1, cell_coords[1]) == self.empty_cell or\
+                (cell_coords[0], cell_coords[1] + 1) == self.empty_cell or\
+                (cell_coords[0], cell_coords[1] - 1) == self.empty_cell:
+            b = self.num_dict[cell_coords]
+            self.num_dict[cell_coords] = 0
+            self.num_dict[self.empty_cell] = b
+            self.empty_cell = cell_coords
+        # rect_centre = (cell_coords[0] * self.cell_size + self.left, cell_coords[1] * self.cell_size + self.top)
+        #
+        # # Drawing Rectangle
+        # pygame.draw.rect(screen, (0, 255, 25),
+        #                  pygame.Rect(rect_centre[0], rect_centre[1], self.cell_size, self.cell_size))
+        # pygame.display.flip()
 
 
 pygame.init()
@@ -63,7 +100,6 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            # pygame.draw.circle(screen, (0, 255, 25), event.pos, 15)
             board.get_click(event.pos, screen)
             pygame.display.update()
             break
